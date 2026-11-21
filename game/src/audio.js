@@ -1,58 +1,73 @@
-// SPOTLIGHT — tiny synth sounds, no audio files.
-// Everything is an oscillator through one AudioContext, created lazily on
-// the first user gesture (browsers block audio before that). Mute is a
-// plain flag; nothing is fetched, nothing is stored.
-
-let ctx = null;
+// Tiny WebAudio synthesizer for SPOTLIGHT. No audio files: every sound
+// is built from oscillators with a short gain envelope.
+let audioCtx = null;
+let master = null;
 let muted = false;
 
-function ac() {
-  if (!ctx) {
+export function isMuted() {
+  return muted;
+}
+
+export function setMuted(value) {
+  muted = !!value;
+  if (master) master.gain.value = muted ? 0 : 0.5;
+}
+
+function ensureCtx() {
+  if (!audioCtx) {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return null;
-    ctx = new AC();
+    audioCtx = new AC();
+    master = audioCtx.createGain();
+    master.gain.value = muted ? 0 : 0.5;
+    master.connect(audioCtx.destination);
   }
-  if (ctx.state === 'suspended') ctx.resume();
-  return ctx;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
 }
 
-function tone(freq, at, dur, type, vol, slideTo = null) {
-  const c = ac();
-  if (!c || muted) return;
-  const o = c.createOscillator();
-  const g = c.createGain();
-  o.type = type;
-  o.frequency.setValueAtTime(freq, c.currentTime + at);
-  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, c.currentTime + at + dur);
-  g.gain.setValueAtTime(0.0001, c.currentTime + at);
-  g.gain.exponentialRampToValueAtTime(vol, c.currentTime + at + 0.015);
-  g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + at + dur);
-  o.connect(g);
-  g.connect(c.destination);
-  o.start(c.currentTime + at);
-  o.stop(c.currentTime + at + dur + 0.05);
+function tone(freq, startAt, dur, type, vol) {
+  const ctx = ensureCtx();
+  if (!ctx) return;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type || 'sine';
+  osc.frequency.value = freq;
+  const t0 = ctx.currentTime + startAt;
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.exponentialRampToValueAtTime(vol || 0.5, t0 + 0.015);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  osc.connect(gain);
+  gain.connect(master);
+  osc.start(t0);
+  osc.stop(t0 + dur + 0.05);
 }
 
-export const sfx = {
-  unlock() { ac(); },
-  click() { tone(660, 0, 0.06, 'sine', 0.08); },
-  found(streak = 0) {
-    const base = 523 + Math.min(streak, 8) * 24;
-    tone(base, 0, 0.12, 'sine', 0.16);
-    tone(base * 1.5, 0.07, 0.16, 'sine', 0.16);
-    tone(base * 2, 0.14, 0.2, 'triangle', 0.1);
-  },
-  wrong() { tone(160, 0, 0.18, 'sawtooth', 0.1, 110); },
-  hint() { tone(880, 0, 0.1, 'sine', 0.1); tone(1174, 0.09, 0.14, 'sine', 0.1); },
-  tick() { tone(980, 0, 0.05, 'square', 0.05); },
-  win() {
-    [523, 659, 784, 1046].forEach((f, i) => tone(f, i * 0.11, 0.22, 'triangle', 0.14));
-    tone(1318, 0.48, 0.4, 'triangle', 0.12);
-  },
-  lose() {
-    [392, 330, 262].forEach((f, i) => tone(f, i * 0.16, 0.24, 'triangle', 0.12));
-  },
-};
+export function playClick() {
+  tone(660, 0, 0.07, 'triangle', 0.25);
+}
 
-export function isMuted() { return muted; }
-export function toggleMute() { muted = !muted; return muted; }
+export function playFind() {
+  tone(880, 0, 0.14, 'sine', 0.55);
+  tone(1318, 0.09, 0.2, 'sine', 0.5);
+}
+
+export function playWrong() {
+  tone(160, 0, 0.22, 'sawtooth', 0.4);
+  tone(110, 0.05, 0.22, 'sawtooth', 0.35);
+}
+
+export function playHint() {
+  tone(1046, 0, 0.1, 'sine', 0.4);
+  tone(1568, 0.07, 0.12, 'sine', 0.35);
+}
+
+export function playWin() {
+  const notes = [523, 659, 784, 1046];
+  notes.forEach((n, i) => tone(n, i * 0.11, 0.24, 'triangle', 0.5));
+}
+
+export function playFail() {
+  const notes = [392, 330, 262, 196];
+  notes.forEach((n, i) => tone(n, i * 0.14, 0.26, 'sine', 0.45));
+}

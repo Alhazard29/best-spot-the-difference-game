@@ -1,69 +1,48 @@
-// SPOTLIGHT — level progression, scoring and stars.
-// One job: turn raw play (finds, mistakes, seconds left, hints used) into
-// a score and a star rating, and remember each level's best. Storage is
-// guarded: the game plays fine with it unavailable.
+// Scoring, stars and best-result persistence for SPOTLIGHT.
 
-import { SCENES } from './scenes.js';
+export const BEST_KEY = 'spotlight-best-v1';
 
-const STORE_KEY = 'spotlight-best-v1';
+// Points for finding a difference. `streak` is how many consecutive
+// finds came before this one: first find 100, then +25 each, capped
+// at +200 bonus (300 per find at most). The cap is reached on the
+// ninth consecutive find, so long streaks stay rewarding but bounded.
+export function pointsForFind(streak) {
+  return 100 + Math.min(streak, 8) * 25;
+}
 
-function loadBest() {
+// Time bonus at the end of a level: seconds left times ten.
+export function timeBonus(timeLeft) {
+  return Math.max(0, Math.round(timeLeft)) * 10;
+}
+
+// Stars: 3 when no mistakes and at least 30% of the time is left,
+// 2 when at most 2 mistakes and at least 15% is left, else 1.
+export function starsFor(mistakes, timeLeft, timeLimit) {
+  const frac = timeLeft / timeLimit;
+  if (mistakes === 0 && frac >= 0.3) return 3;
+  if (mistakes <= 2 && frac >= 0.15) return 2;
+  return 1;
+}
+
+export function loadBest() {
   try {
-    return JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
-  } catch {
+    const raw = window.localStorage.getItem(BEST_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
     return {};
   }
 }
 
-function saveBest(best) {
+export function saveBest(level, stars, score) {
   try {
-    localStorage.setItem(STORE_KEY, JSON.stringify(best));
-  } catch {
-    // Private mode or no storage: best scores just do not persist.
+    const best = loadBest();
+    const cur = best[level] || { stars: 0, score: 0 };
+    best[level] = {
+      stars: Math.max(cur.stars, stars),
+      score: Math.max(cur.score, score),
+    };
+    window.localStorage.setItem(BEST_KEY, JSON.stringify(best));
+  } catch (e) {
+    // Storage unavailable (private mode, blocked cookies): ignore.
   }
-}
-
-export function getBest() {
-  return loadBest();
-}
-
-export function sceneCount() {
-  return SCENES.length;
-}
-
-export function totalDiffs() {
-  return SCENES.reduce((n, s) => n + s.diffs.length, 0);
-}
-
-// Stars: 3 for a clean, fast clear; 2 for a solid clear; else 1.
-export function starsFor(scene, mistakes, secondsLeft) {
-  const timeShare = secondsLeft / scene.timeLimit;
-  if (mistakes === 0 && timeShare >= 0.3) return 3;
-  if (mistakes <= 2 && timeShare >= 0.15) return 2;
-  return 1;
-}
-
-export function findPoints(streak) {
-  return 100 + Math.min(streak, 8) * 25;
-}
-
-export function timeBonus(secondsLeft) {
-  return Math.round(secondsLeft) * 10;
-}
-
-export function recordLevelResult(index, stars, score) {
-  const best = loadBest();
-  const key = SCENES[index].id;
-  const prev = best[key] || { stars: 0, score: 0 };
-  best[key] = {
-    stars: Math.max(prev.stars, stars),
-    score: Math.max(prev.score, score),
-  };
-  saveBest(best);
-  return best[key];
-}
-
-export function totalStars() {
-  const best = loadBest();
-  return SCENES.reduce((n, s) => n + ((best[s.id] || {}).stars || 0), 0);
 }
