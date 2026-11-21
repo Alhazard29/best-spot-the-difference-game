@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPOTLIGHT — Spot the Difference</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="src/style.css">
+</head>
+<body>
+<div id="stage">
+  <canvas id="game" width="1280" height="720"></canvas>
+
+  <header id="hud">
+    <div class="hud-left">
+      <span id="hud-level" class="badge">LEVEL 1/5</span>
+      <span id="hud-scene" class="scene-name">Sunny Park</span>
+    </div>
+    <div class="hud-mid">
+      <span id="hud-dots" class="dots"></span>
+      <span id="hud-counter">0 / 7 found · 7 to go</span>
+    </div>
+    <div class="hud-right">
+      <div class="timer">
+        <span id="hud-timer">1:30</span>
+        <div class="timer-track"><div id="hud-timerbar"></div></div>
+      </div>
+      <span id="hud-score" class="score">Score 0</span>
+      <button id="btn-hint" class="hud-btn">Hint (3)</button>
+      <button id="btn-mute" class="hud-btn">Sound: On</button>
+      <button id="btn-pause" class="hud-btn">Pause</button>
+    </div>
+  </header>
+
+  <div id="toast"></div>
+
+  <section id="screen-title" class="screen">
+    <h1>SPOT<span class="lite">LIGHT</span></h1>
+    <p class="tagline">Spot the difference — five original scenes, 39 differences hiding in plain sight.</p>
+    <p class="how">Two pictures, side by side. Click a difference on either one to ring it. Wrong clicks cost 3 seconds. Hints cost 5.</p>
+    <button id="btn-play" class="big-btn">▶&nbsp; Play</button>
+    <div id="level-cards"></div>
+    <p id="total-diffs" class="foot"></p>
+    <p class="foot">H = hint · M = sound · Esc = pause · Enter = start</p>
+  </section>
+
+  <section id="screen-pause" class="screen hidden">
+    <h2>Paused</h2>
+    <p class="tagline">Take a breath. The differences will wait.</p>
+    <button id="btn-resume" class="big-btn">Resume</button>
+    <button id="btn-restart" class="ghost-btn">Restart level</button>
+    <button id="btn-quit" class="ghost-btn">Quit to menu</button>
+  </section>
+
+  <section id="screen-complete" class="screen hidden">
+    <h2 id="complete-title">Level complete!</h2>
+    <div id="complete-stars" class="stars-big">★★★</div>
+    <ul id="complete-lines" class="lines"></ul>
+    <button id="btn-next" class="big-btn">Next level →</button>
+    <button id="btn-replay" class="ghost-btn">Replay level</button>
+    <button id="btn-menu" class="ghost-btn">Menu</button>
+  </section>
+
+  <section id="screen-failed" class="screen hidden">
+    <h2 id="failed-title">Out of time</h2>
+    <p id="failed-lines" class="tagline"></p>
+    <button id="btn-retry" class="big-btn">Try again</button>
+    <button id="btn-failed-menu" class="ghost-btn">Menu</button>
+  </section>
+
+  <section id="screen-final" class="screen hidden">
+    <h2>You found them all!</h2>
+    <div id="final-stars" class="stars-big">★★★★★</div>
+    <ul id="final-lines" class="lines"></ul>
+    <button id="btn-again" class="big-btn">Play again</button>
+    <button id="btn-final-menu" class="ghost-btn">Menu</button>
+  </section>
+</div>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
